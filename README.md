@@ -1,14 +1,14 @@
 
 # Simple Sql ORM
 
-A brief description of what this project does and who it's for
+simple orm with zero knowledge requirement
 
 
 ## Quick Start
 
 Initial
 
-``` 
+```javascript
 const Orm = require('./ORM');
 const User = new Orm('users', true);
 ```
@@ -16,7 +16,7 @@ const User = new Orm('users', true);
 ### Example
 
 Insert data
-```
+```javascript
 async function submit() {
     try {
         const user = User.create({
@@ -31,7 +31,7 @@ async function submit() {
 }
 ```
 Get multiple rows (with all fields)
-```
+```javascript
 async function submit() {
     try {
         const user = User.select(['*']);
@@ -43,7 +43,7 @@ async function submit() {
 }
 ```
 or (with selected field/fields)
-```
+```javascript
 async function submit() {
     try {
 	const user = User.select(['username', 'password']);
@@ -56,7 +56,7 @@ async function submit() {
 ```
 
 Get single row
-```
+```javascript
 async function submit() {
     try {
 	const user = User.select(['*']);
@@ -68,7 +68,7 @@ async function submit() {
 }
 ```
 or
-```
+```javascript
 async function submit() {
     try {
 	const user = User.select(['username', 'password']);
