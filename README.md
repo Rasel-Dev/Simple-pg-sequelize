@@ -30,7 +30,7 @@ async function submit() {
     }
 }
 ```
-Get multiple rows
+Get multiple rows (with all fields)
 ```
 async function submit() {
     try {
@@ -42,7 +42,7 @@ async function submit() {
     }
 }
 ```
-or
+or (with selected field/fields)
 ```
 async function submit() {
     try {
