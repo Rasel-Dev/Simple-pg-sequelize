@@ -1,7 +1,7 @@
 
-# Simple Sql ORM
+# Simple Postgresql ORM
 
-simple orm with zero knowledge requirement (Develop in progress...)
+simple orm with zero knowledge requirement ( Develop in progress... )
 
 
 ## Usage/Examples
