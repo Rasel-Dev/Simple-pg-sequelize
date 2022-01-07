@@ -4,7 +4,7 @@
 simple orm with zero knowledge requirement
 
 
-## Quick Start
+## Usage/Examples
 
 Initial
 
@@ -12,8 +12,6 @@ Initial
 const Orm = require('./ORM');
 const User = new Orm('users', true);
 ```
-
-### Example
 
 Insert data
 ```javascript
