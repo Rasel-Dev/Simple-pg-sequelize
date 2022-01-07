@@ -1,7 +1,7 @@
 
 # Simple Sql ORM
 
-simple orm with zero knowledge requirement
+simple orm with zero knowledge requirement (Develop in progress...)
 
 
 ## Usage/Examples
