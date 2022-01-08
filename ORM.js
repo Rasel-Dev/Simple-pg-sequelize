@@ -1,6 +1,8 @@
-const pool = require('../DB');
+const query_exec = require('../DB');
+
 class Orm {
 	_placeholders = 0;
+
 	constructor(table, timestamp = false) {
 		this._table = table;
 		this._timestamp = timestamp;
@@ -52,6 +54,11 @@ class Orm {
 		return this;
 	}
 
+	paginate(offset = 0, limit = 10) {
+		this._paginate = `OFFSET ${offset} LIMIT ${limit}`;
+		return this;
+	}
+
 	// don't use
 	async deleted(fields = {}) {
 		if (fields !== undefined) {
@@ -68,7 +75,7 @@ class Orm {
 				});
 				this._whereClause = `${serialized_fields.join(' AND ')}`;
 			}
-			this._sql = `DELETE FROM ${this._table} WHERE ${this._whereClause} RETURNING id;`;
+			this._sql = `DELETE FROM ${this._table} WHERE ${this._whereClause} RETURNING id`;
 		}
 		// return this;
 		return [this._sql, this._values];
@@ -106,7 +113,7 @@ class Orm {
 		const message = {};
 		this._sql += ` RETURNING id;`;
 		try {
-			const result = await pool.query(this._sql, this._values);
+			const result = await query_exec(this._sql, this._values);
 			message.affected_rows = result.rowCount;
 			if (this._sql.includes('INSERT')) {
 				message.insertId = result.rows[0].id;
@@ -116,44 +123,18 @@ class Orm {
 			return message;
 			// return [this._sql, this._values];
 		} catch (err) {
-			const errmsg = String(err.message);
-			// get first index with plus one
-			const start = errmsg.indexOf('"') + 1;
-			// get last index
-			const end = errmsg.indexOf('"', start);
-			// collect name from error message
-			const collectField = errmsg.slice(start, end);
-			// empty message object
-			const message = {};
-
-			if (errmsg.includes('not-null')) {
-				// if null
-				message[err.column] = `${err.column} field is required!`;
-			} else if (errmsg.includes('duplicate key value')) {
-				// if exists
-				const fieldArr = collectField.split('_');
-				fieldArr.splice(0, 1);
-				fieldArr.splice(fieldArr.length - 1, 1);
-				const field = fieldArr;
-				message[field] = `${field} already exists!`;
-			} else if (errmsg.includes('does not exist')) {
-				// if fields not exists
-				message[collectField] = `${collectField} field does not exist!`;
-			}
-
 			console.log(err, '-X-');
-			throw message;
 		}
-		// // this._sql += `;`;
+		// // this._sql += ``;
 		// const result = await pool.query(this._sql, this._values);
 		// return [this._sql, this._values];
 	}
 
 	async saveGet(return_values = []) {
-		this._sql += ` RETURNING id, ${return_values.join(', ')};`;
+		this._sql += ` RETURNING id, ${return_values.join(', ')}`;
 		try {
 			const message = {};
-			const result = await pool.query(this._sql, this._values);
+			const result = await query_exec(this._sql, this._values);
 			// return result.rows[0].id;
 			message.affected_rows = result.rowCount;
 			if (this._sql.includes('INSERT')) {
@@ -170,39 +151,84 @@ class Orm {
 		// return this._sql;
 	}
 
-	async get(order = 'asc') {
-		this._sql += ` ORDER BY id ${order} LIMIT 1;`;
-		// this._sql += `;`;
-		const result = await pool.query(this._sql);
-		return result.rows[0];
-		return [this._sql, this._values];
+	async get(order = 'ASC') {
+		try {
+			if (this._sql === undefined) {
+				this._sql = `SELECT * FROM ${this._table} ORDER BY id ${order} LIMIT 1;`;
+			} else if (String(this._sql).includes('undefined WHERE')) {
+				const where = String(this._sql).replace('undefined ', '');
+				this._sql = `SELECT * FROM ${this._table} ${where}ORDER BY id ${order} LIMIT 1;`;
+			} else {
+				this._sql += ` ORDER BY id ${order} LIMIT 1;`;
+			}
+			const result = await query_exec(this._sql, this._values);
+			// console.log(result, '--');
+			return result.rows[0];
+			console.log(this._sql, '--DEV--');
+			// return [this._sql, this._values];
+		} catch (error) {
+			throw error;
+		}
+
+		// try {
+		// 	// this._sql += ``;
+
+		// 	return [this._sql, this._values];
+		// } catch (error) {
+		// 	console.log(error);
+		// }
 	}
 
-	async gets(order = 'asc') {
-		this._sql += ` ORDER BY id ${order};`;
-		// this._sql += `;`;
-		const result = await pool.query(this._sql);
-		return result.rows;
+	async gets(order = 'ASC') {
+		// this._sql += ` ORDER BY id ${order}`;
+		try {
+			if (this._sql === undefined) {
+				this._sql = `SELECT * FROM ${
+					this._table
+				} ORDER BY id ${order} ${
+					this._paginate !== undefined ? this._paginate : ''
+				};`;
+			} else if (String(this._sql).includes('undefined WHERE')) {
+				const where = String(this._sql).replace('undefined ', '');
+				this._sql = `SELECT * FROM ${
+					this._table
+				} ${where}ORDER BY id ${order} ${
+					this._paginate !== undefined ? this._paginate : ''
+				};`;
+			} else {
+				this._sql += ` ORDER BY id ${order} ${
+					this._paginate !== undefined ? this._paginate : ''
+				};`;
+			}
+			// return [this._sql, this._values, this._paginate];
+			const result = await query_exec(this._sql, this._values);
+			return result.rows;
+		} catch (error) {
+			console.log(error);
+		}
 	}
 
 	async delete() {
-		if (String(this._sql).includes('undefined WHERE')) {
-			const where = String(this._sql).replace('undefined ', '');
-			this._sql = `DELETE FROM ${this._table} ${where}RETURNING id;`;
-			const result = await pool.query(this._sql, this._values);
-			return {
-				affected_rows: result.rowCount,
-				deleteId: result.rows[0].id,
-			};
-			// return [this._sql, this._values];
+		try {
+			if (String(this._sql).includes('undefined WHERE')) {
+				const where = String(this._sql).replace('undefined ', '');
+				this._sql = `DELETE FROM ${this._table} ${where}RETURNING id;`;
+				const result = await query_exec(this._sql, this._values);
+				return {
+					affected_rows: result.rowCount,
+					deleteId: result.rows[0].id,
+				};
+				// return [this._sql, this._values];
+			}
+		} catch (error) {
+			console.log(error);
 		}
-		// console.log(this._sql, this._values);
 	}
 
 	// risky
 	async clear() {
-		this._sql = `DELETE FROM ${this._table};`;
-		const result = await pool.query(this._sql);
+		this._sql = `DELETE FROM ${this._table}`;
+		const result = await query_exec(this._sql);
 		return result;
 	}
 
