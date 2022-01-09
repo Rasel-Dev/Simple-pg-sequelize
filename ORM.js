@@ -26,7 +26,8 @@ class Orm {
 	}
 
 	select(fields = []) {
-		this._sql = `SELECT ${fields.join(', ')} FROM ${this._table}`;
+		this._select = `${fields.join(', ')}`;
+		this._sql = `SELECT ${this._select} FROM ${this._table}`;
 		return this;
 	}
 
@@ -50,6 +51,16 @@ class Orm {
 				this._whereClause = `${serialized_fields.join(', ')}`;
 			}
 			this._sql = `UPDATE ${this._table} SET ${this._whereClause}`;
+		}
+		return this;
+	}
+
+	// ! working...
+	relation(relationTable = '', foreignKey = '', primaryKey = '') {
+		if (this._sql === undefined) {
+			this._sql = `SELECT * FROM ${this._table} JOIN ${relationTable} ON ${this._table}.${primaryKey} = ${relationTable}.${foreignKey}`;
+		} else {
+			this._sql += ` JOIN ${relationTable} ON ${this._table}.${primaryKey} = ${relationTable}.${foreignKey}`;
 		}
 		return this;
 	}
@@ -152,20 +163,38 @@ class Orm {
 	}
 
 	async get(order = 'ASC') {
+		const test = String(this._select).split(', ');
+		const test1 = test.map((el) =>
+			el.includes('.') ? `${el}` : `${this._table}.${el}`,
+		);
+		const test2 = test1.join(', ');
+		console.log(test2, 'ccc');
 		try {
 			if (this._sql === undefined) {
 				this._sql = `SELECT * FROM ${this._table} ORDER BY id ${order} LIMIT 1;`;
 			} else if (String(this._sql).includes('undefined WHERE')) {
 				const where = String(this._sql).replace('undefined ', '');
-				this._sql = `SELECT * FROM ${this._table} ${where}ORDER BY id ${order} LIMIT 1;`;
+				this._sql = `SELECT * FROM ${this._table} ${where}ORDER BY ${
+					String(this._sql).includes('JOIN')
+						? `${this._table}.id`
+						: `id`
+				} ${order} LIMIT 1;`;
 			} else {
-				this._sql += ` ORDER BY id ${order} LIMIT 1;`;
+				this._sql += ` ORDER BY ${
+					String(this._sql).includes('JOIN')
+						? `${this._table}.id`
+						: `id`
+				} ${order} LIMIT 1;`;
 			}
-			const result = await query_exec(this._sql, this._values);
-			// console.log(result, '--');
-			return result.rows[0];
-			console.log(this._sql, '--DEV--');
-			// return [this._sql, this._values];
+			// const result = await query_exec(this._sql, this._values);
+			// // console.log(result, '--');
+			// return result.rows[0];
+			// console.log(this._sql, '--DEV--');
+			return [
+				this._sql,
+				this._values,
+				String(this._sql).includes('JOIN'),
+			];
 		} catch (error) {
 			throw error;
 		}
