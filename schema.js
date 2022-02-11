@@ -6,6 +6,7 @@ const schemeObj = {
     username: {
         type: String,
         required: true,
+        name: "Zubayer"
     },
     pass: {
         type: String,
